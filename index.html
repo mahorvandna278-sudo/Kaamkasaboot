@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14532d">
+  <meta name="description" content="KaamKaSaboot — kaam, payment aur baaki hisaab ek jagah.">
+  <link rel="manifest" href="manifest.json">
+  <title>KaamKaSaboot</title>
+  <style>
+    :root{--green:#14532d;--green2:#166534;--bg:#f4f7f4;--card:#fff;--ink:#17231b;--muted:#647067;--line:#dce5dd;--red:#b42318;--amber:#92400e}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+    header{background:var(--green);color:white;padding:22px 16px 18px}header .inner,main{max-width:900px;margin:auto}
+    h1{margin:0;font-size:25px}header p{margin:5px 0 0;color:#e1f3e5;font-size:14px}
+    main{padding:16px;display:grid;gap:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .stat,.panel,.job{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 2px 8px #183c1b08}
+    .stat small{display:block;color:var(--muted);font-size:12px}.stat strong{display:block;font-size:19px;margin-top:4px;overflow-wrap:anywhere}
+    h2{font-size:18px;margin:0 0 12px}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    label{font-size:13px;color:#39473d;display:grid;gap:5px}input,textarea,select{width:100%;font:inherit;border:1px solid #cbd7cd;border-radius:9px;padding:11px;background:white;color:var(--ink);min-width:0}
+    textarea{min-height:74px;resize:vertical}.full{grid-column:1/-1}.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    button,.filelabel{border:0;border-radius:9px;padding:11px 14px;font:600 14px system-ui;cursor:pointer;background:var(--green);color:white}
+    button.secondary{background:#e7efe8;color:var(--green)}button.danger{background:#fff0ee;color:var(--red)}button:focus,input:focus,textarea:focus{outline:2px solid #86b89a;outline-offset:1px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar input{flex:1;min-width:150px}
+    .job{display:grid;gap:9px}.jobtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.job h3{margin:0;font-size:17px;overflow-wrap:anywhere}.muted{color:var(--muted);font-size:13px}.money{font-weight:700}.due{color:var(--red)}.paid{color:var(--green2)}
+    .jobactions{display:flex;gap:7px;flex-wrap:wrap}.jobactions button{padding:9px 11px;font-size:13px}.empty{text-align:center;color:var(--muted);padding:24px 10px}
+    .notice{font-size:12px;color:var(--muted);line-height:1.5}.hidden{display:none!important}
+    @media(max-width:560px){.stats{grid-template-columns:1fr 1fr}.stat:last-child{grid-column:1/-1}.fields{grid-template-columns:1fr}.full{grid-column:auto}.jobtop{align-items:flex-start}}
+    @media print{header,.stats,.panel,.toolbar,.jobactions,.notice{display:none!important}body{background:white}main{padding:0}.job{break-inside:avoid;box-shadow:none}}
+  </style>
+</head>
+<body>
+<header><div class="inner"><h1>📒 KaamKaSaboot</h1><p>Kaam, payment aur baaki hisaab — ek jagah.</p></div></header>
+<main>
+  <section class="stats" aria-label="Hisaab summary">
+    <div class="stat"><small>Total kaam</small><strong id="count">0</strong></div>
+    <div class="stat"><small>Total rakam</small><strong id="total">₹0</strong></div>
+    <div class="stat"><small>Baaki lena hai</small><strong id="pending">₹0</strong></div>
+  </section>
+
+  <section class="panel">
+    <h2 id="formTitle">Naya kaam jodein</h2>
+    <form id="jobForm">
+      <input type="hidden" id="editId">
+      <div class="fields">
+        <label>Customer ka naam *<input id="customer" required maxlength="100" placeholder="Jaise: Ramesh Kumar"></label>
+        <label>Mobile number<input id="phone" inputmode="tel" maxlength="20" placeholder="Jaise: 98xxxxxx10"></label>
+        <label class="full">Kaam ki details *<textarea id="work" required maxlength="500" placeholder="Jaise: ghar ki wiring ka kaam"></textarea></label>
+        <label>Total rakam (₹) *<input id="amount" required type="number" min="0" step="0.01" inputmode="decimal" placeholder="5000"></label>
+        <label>Ab tak jama (₹)<input id="paidAmount" type="number" min="0" step="0.01" inputmode="decimal" value="0"></label>
+        <label>Payment ki tareekh<input id="dueDate" type="date"></label>
+        <label>Kaam ka status<select id="status"><option value="pending">Kaam baaki hai</option><option value="progress">Kaam chal raha hai</option><option value="done">Kaam poora hai</option></select></label>
+      </div>
+      <div class="btnrow"><button type="submit" id="saveBtn">Kaam save karein</button><button type="button" class="secondary hidden" id="cancelEdit">Edit cancel</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Customer aur hisaab</h2>
+    <div class="toolbar"><input id="search" placeholder="Naam, phone ya kaam search karein" aria-label="Search customers"><button class="secondary" id="exportBtn" type="button">Backup nikalein</button><label class="filelabel" for="importFile">Backup restore</label><input class="hidden" id="importFile" type="file" accept="application/json,.json"></div>
+    <div id="jobs" style="display:grid;gap:10px;margin-top:12px"></div>
+  </section>
+  <p class="notice">Privacy note: records isi browser/device mein save hote hain. Browser data clear karne, private browsing, ya device badalne par data kho sakta hai. Regular backup nikalein. Abhi cloud sync/login nahi hai. Customer ki asli details bharne se pehle app ko test data ke saath aazma lein.</p>
+</main>
+<script>
+(() => {
+  const KEY = "kaamkasaboot.jobs.v1";
+  const $ = id => document.getElementById(id);
+  let jobs = [];
+  try { jobs = JSON.parse(localStorage.getItem(KEY) || "[]"); if (!Array.isArray(jobs)) jobs = []; } catch { jobs = []; }
+  const money = n => new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:2}).format(Number(n)||0);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(jobs)); } catch(e) { alert("Data save nahi ho saka. Backup nikalein aur kuch purane records hata kar dobara try karein."); } };
+  const remaining = j => Math.max(0, Number(j.amount||0)-Number(j.paidAmount||0));
+  const statusText = s => ({pending:"Kaam baaki hai",progress:"Kaam chal raha hai",done:"Kaam poora hai"}[s] || "Status nahi diya");
+  function render() {
+    $("count").textContent = jobs.length;
+    $("total").textContent = money(jobs.reduce((a,j)=>a+Number(j.amount||0),0));
+    $("pending").textContent = money(jobs.reduce((a,j)=>a+remaining(j),0));
+    const q = $("search").value.trim().toLowerCase();
+    const filtered = jobs.filter(j => [j.customer,j.phone,j.work,statusText(j.status)].join(" ").toLowerCase().includes(q));
+    const root = $("jobs");
+    if (!filtered.length) { root.innerHTML = '<div class="empty">'+(jobs.length ? "Koi matching record nahi mila." : "Abhi koi kaam save nahi hai. Upar form se pehla kaam jodein.")+'</div>'; return; }
+    root.innerHTML = filtered.slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(j => {
+      const bal = remaining(j);
+      const phone = String(j.phone||"").replace(/\D/g,"");
+      const msg = `Namaste ${j.customer}, ${j.work} ke liye kul rakam ${money(j.amount)}, jama ${money(j.paidAmount)} aur baaki ${money(bal)} hai. Kripya payment update kar dein.`;
+      const wa = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : "";
+      return `<article class="job">
+        <div class="jobtop"><div><h3>${esc(j.customer)}</h3><div class="muted">${esc(j.phone||"Phone nahi diya")} · ${esc(statusText(j.status))}</div></div><div class="money ${bal>0?"due":"paid"}">${money(bal)} baaki</div></div>
+        <div>${esc(j.work)}</div>
+        <div class="muted">Total: <b>${money(j.amount)}</b> · Jama: <b>${money(j.paidAmount)}</b>${j.dueDate ? " · Tareekh: "+esc(j.dueDate) : ""}</div>
+        <div class="jobactions">
+          <button type="button" data-action="payment" data-id="${j.id}">Payment jodein</button>
+          <button type="button" class="secondary" data-action="edit" data-id="${j.id}">Edit</button>
+          <button type="button" class="secondary" data-action="receipt" data-id="${j.id}">Receipt / Print</button>
+          ${wa ? `<button type="button" class="secondary" data-action="whatsapp" data-url="${esc(wa)}">WhatsApp reminder</button>` : ""}
+          <button type="button" class="danger" data-action="delete" data-id="${j.id}">Delete</button>
+        </div>
+      </article>`;
+    }).join("");
+  }
+  function resetForm() {
+    $("jobForm").reset(); $("editId").value=""; $("paidAmount").value="0";
+    $("formTitle").textContent="Naya kaam jodein"; $("saveBtn").textContent="Kaam save karein"; $("cancelEdit").classList.add("hidden");
+  }
+  $("jobForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const amount=Number($("amount").value), paidAmount=Number($("paidAmount").value||0);
+    if (amount<0 || paidAmount<0 || paidAmount>amount) { alert("Jama rakam 0 se kam ya total rakam se zyada nahi ho sakti."); return; }
+    const editId=$("editId").value;
+    const existing=jobs.find(j=>j.id===editId);
+    const item={id:editId||String(Date.now())+"-"+Math.random().toString(36).slice(2,7),customer:$("customer").value.trim(),phone:$("phone").value.trim(),work:$("work").value.trim(),amount,paidAmount,dueDate:$("dueDate").value,status:$("status").value,createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now()};
+    if(editId) jobs=jobs.map(j=>j.id===editId?item:j); else jobs.push(item);
+    persist(); resetForm(); render();
+  });
+  $("cancelEdit").addEventListener("click",resetForm);
+  $("search").addEventListener("input",render);
+  $("jobs").addEventListener("click", e => {
+    const b=e.target.closest("button[data-action]"); if(!b) return;
+    const action=b.dataset.action, id=b.dataset.id, j=jobs.find(x=>x.id===id);
+    if(action==="whatsapp"){ window.open(b.dataset.url,"_blank","noopener"); return; }
+    if(!j) return;
+    if(action==="edit"){
+      $("editId").value=j.id; $("customer").value=j.customer; $("phone").value=j.phone||""; $("work").value=j.work;
+      $("amount").value=j.amount; $("paidAmount").value=j.paidAmount; $("dueDate").value=j.dueDate||""; $("status").value=j.status;
+      $("formTitle").textContent="Kaam edit karein"; $("saveBtn").textContent="Changes save karein"; $("cancelEdit").classList.remove("hidden");
+      window.scrollTo({top:0,behavior:"smooth"});
+    } else if(action==="payment"){
+      const val=prompt(`Kitni payment jama hui? Baaki ${money(remaining(j))}`,String(remaining(j)));
+      if(val===null) return; const n=Number(val);
+      if(!Number.isFinite(n)||n<=0||n>remaining(j)){alert("Valid amount daalein, jo baaki rakam se zyada na ho.");return;}
+      j.paidAmount=Number(j.paidAmount)+n; j.updatedAt=Date.now(); persist(); render();
+    } else if(action==="delete"){
+      if(confirm(`${j.customer} ka record delete karna hai?`)){jobs=jobs.filter(x=>x.id!==id);persist();render();}
+    } else if(action==="receipt"){
+      const w=window.open("","_blank"); if(!w){alert("Receipt kholne ke liye browser pop-up allow karein.");return;}
+      w.document.write(`<!doctype html><html lang="hi"><meta charset="utf-8"><title>KaamKaSaboot Receipt</title><style>body{font:16px system-ui;max-width:650px;margin:30px auto;padding:15px;color:#17231b}h1{color:#14532d}.line{border-bottom:1px solid #ccc;padding:10px 0}.amount{font-size:22px;font-weight:bold}button{padding:10px}</style><h1>KaamKaSaboot</h1><h2>Kaam / Payment Summary</h2><div class="line"><b>Customer:</b> ${esc(j.customer)}</div><div class="line"><b>Phone:</b> ${esc(j.phone||"—")}</div><div class="line"><b>Kaam:</b> ${esc(j.work)}</div><div class="line"><b>Total rakam:</b> ${money(j.amount)}</div><div class="line"><b>Jama rakam:</b> ${money(j.paidAmount)}</div><div class="line amount">Baaki: ${money(remaining(j))}</div><div class="line"><b>Status:</b> ${esc(statusText(j.status))}</div><p class="muted">Yeh app se bana hua hisaab summary hai, tax invoice ya payment confirmation ka badal nahi.</p><button onclick="window.print()">Print / Save PDF</button></html>`);
+      w.document.close();
+    }
+  });
+  $("exportBtn").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify({app:"KaamKaSaboot",version:1,exportedAt:new Date().toISOString(),jobs},null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob), a=document.createElement("a");a.href=url;a.download="kaamkasaboot-backup.json";a.click();URL.revokeObjectURL(url);
+  });
+  $("importFile").addEventListener("change",async e=>{
+    const file=e.target.files[0]; if(!file)return;
+    try { const data=JSON.parse(await file.text()); const incoming=Array.isArray(data)?data:data.jobs;
+      if(!Array.isArray(incoming)||!incoming.every(j=>j&&typeof j.customer==="string"&&Number.isFinite(Number(j.amount))))throw Error();
+      if(!confirm("Backup restore karne se current records replace ho jayenge. Pehle current backup nikala hai?"))return;
+      jobs=incoming.map(j=>({...j,id:String(j.id||Date.now()+Math.random()),amount:Number(j.amount),paidAmount:Number(j.paidAmount||0)}));persist();render();alert("Backup restore ho gaya.");
+    } catch { alert("Yeh backup file sahi format mein nahi hai."); } finally {e.target.value="";}
+  });
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(()=>{});
+  render();
+})();
+</script>
+</body>
+</html>

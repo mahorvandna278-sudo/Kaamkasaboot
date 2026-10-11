@@ -1,0 +1,11 @@
+{
+  "name": "KaamKaSaboot",
+  "short_name": "KaamKaSaboot",
+  "description": "Kaam aur payment ka hisaab rakhein",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f4",
+  "theme_color": "#14532d",
+  "icons": []
+}
